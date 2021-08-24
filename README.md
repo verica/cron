@@ -1,4 +1,5 @@
 
+[![CircleCI](https://circleci.com/<VCS>/<ORG_NAME>/<PROJECT_NAME>.svg?style=svg&circle-token=4456a7b136d0f293899bfa926335aee17739a3b5)](<https://github.com/verica/cron>)
 
 # cron
 
