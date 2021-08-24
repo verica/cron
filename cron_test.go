@@ -541,6 +541,10 @@ func (*ZeroSchedule) Next(time.Time) time.Time {
 	return time.Time{}
 }
 
+func (*ZeroSchedule) Previous(time.Time) time.Time {
+	return time.Time{}
+}
+
 // Tests that job without time does not run
 func TestJobWithZeroTimeDoesNotRun(t *testing.T) {
 	cron := newWithSeconds()
@@ -676,6 +680,30 @@ func TestMultiThreadedStartAndStop(t *testing.T) {
 	go cron.Run()
 	time.Sleep(2 * time.Millisecond)
 	cron.Stop()
+}
+
+func TestMinimumTime(t *testing.T) {
+	now := time.Now()
+	times := []time.Time{
+		now.Add(time.Second * 3),
+		now.Add(time.Second * 2),
+		now.Add(time.Second * -1),
+		now.Add(time.Minute * 1),
+		now.Add(time.Minute * -3),
+		now.Add(time.Minute * -2),
+		now.Add(time.Second * -180),
+		now.Add(time.Second * 2),
+	}
+	expected := 4
+
+	entries := []*Entry{}
+	for _, t := range times {
+		entries = append(entries, &Entry{Next: t})
+	}
+
+	if byTime(entries).Min() != expected {
+		t.Error("Get the minimum entry index by time is unexpected")
+	}
 }
 
 func wait(wg *sync.WaitGroup) chan bool {

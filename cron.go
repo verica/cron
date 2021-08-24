@@ -2,7 +2,6 @@ package cron
 
 import (
 	"context"
-	"sort"
 	"sync"
 	"time"
 )
@@ -41,6 +40,9 @@ type Schedule interface {
 	// Next returns the next activation time, later than the given time.
 	// Next is invoked initially, and then each time the job is run.
 	Next(time.Time) time.Time
+
+	// Previous returns the previous activation time, earlier than the given time.
+	Previous(time.Time) time.Time
 }
 
 // EntryID identifies an entry within a Cron instance
@@ -93,6 +95,16 @@ func (s byTime) Less(i, j int) bool {
 	return s[i].Next.Before(s[j].Next)
 }
 
+func (s byTime) Min() int {
+	min := 0
+	for i := range s {
+		if s.Less(i, min) {
+			min = i
+		}
+	}
+	return min
+}
+
 // New returns a new Cron job runner, modified by the given options.
 //
 // Available Settings
@@ -133,6 +145,7 @@ func New(opts ...Option) *Cron {
 // FuncJob is a wrapper that turns a func() into a cron.Job
 type FuncJob func()
 
+// Run will satisfies interface declaration
 func (f FuncJob) Run() { f() }
 
 // AddFunc adds a func to the Cron to be run on the given schedule.
@@ -248,15 +261,15 @@ func (c *Cron) run() {
 
 	for {
 		// Determine the next entry to run.
-		sort.Sort(byTime(c.entries))
+		min := byTime(c.entries).Min()
 
 		var timer *time.Timer
-		if len(c.entries) == 0 || c.entries[0].Next.IsZero() {
+		if len(c.entries) == 0 || c.entries[min].Next.IsZero() {
 			// If there are no entries yet, just sleep - it still handles new entries
 			// and stop requests.
 			timer = time.NewTimer(100000 * time.Hour)
 		} else {
-			timer = time.NewTimer(c.entries[0].Next.Sub(now))
+			timer = time.NewTimer(c.entries[min].Next.Sub(now))
 		}
 
 		for {
