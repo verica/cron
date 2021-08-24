@@ -2,6 +2,7 @@ package cron
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"time"
 )
@@ -261,15 +262,15 @@ func (c *Cron) run() {
 
 	for {
 		// Determine the next entry to run.
-		min := byTime(c.entries).Min()
+		sort.Sort(byTime(c.entries))
 
 		var timer *time.Timer
-		if len(c.entries) == 0 || c.entries[min].Next.IsZero() {
+		if len(c.entries) == 0 || c.entries[0].Next.IsZero() {
 			// If there are no entries yet, just sleep - it still handles new entries
 			// and stop requests.
 			timer = time.NewTimer(100000 * time.Hour)
 		} else {
-			timer = time.NewTimer(c.entries[min].Next.Sub(now))
+			timer = time.NewTimer(c.entries[0].Next.Sub(now))
 		}
 
 		for {
